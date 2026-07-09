@@ -273,14 +273,15 @@
     <button data-view="time">Time Patterns</button>
     <button data-view="people">Team &amp; Response</button>
     <button data-view="lines">Lines &amp; Root Causes</button>
+    <button data-view="audit">Line Audit · 14 Days</button>
   </div>
 
   <!-- ============ SELECT SCREEN ============ -->
   <section class="view active" id="view-select">
     <div class="stage-head">
-      <p class="eyebrow">Four views, one dataset</p>
+      <p class="eyebrow">Five views, two datasets</p>
       <h2>Select a dashboard</h2>
-      <p>Four cuts of the same 231 MAP-machine call-outs from the last two months of Slack call-outs — any call-out that's an oxygen/gas-flush reading, or explicitly mentions the MAP machine itself (sealing, conveyor, sensor, pneumatic). Pick a view.</p>
+      <p>Four cuts of 231 MAP-machine call-outs (oxygen/gas-flush plus every explicit MAP-machine mention) over the last two months, plus a fifth: a hand-audited, every-message accounting of all Line 1–11 call-outs — every issue type, not just oxygen — over just the last 14 days. Pick a view.</p>
     </div>
     <div class="cab-grid">
       <div class="cab-btn" tabindex="0" role="button" data-view="overview" style="--glow:var(--cyan)">
@@ -310,6 +311,13 @@
         <h3>Lines &amp; Root Causes</h3>
         <p>Busiest lines, downtime distribution, and root-cause themes.</p>
         <span class="teaser">LINE 3 · 28 CALLS · TOP CAUSE: GAS FLUSH</span>
+      </div>
+      <div class="cab-btn" tabindex="0" role="button" data-view="audit" style="--glow:var(--magenta); --glow2:#ff8cc8">
+        <span class="press" style="--glow:var(--magenta); --glow2:#ff8cc8"></span>
+        <span class="stage-num">Full audit</span>
+        <h3>Line 1-11 Audit · 14 Days</h3>
+        <p>Every issue type on Lines 1-11 — sealing, knife, sensor, conveyor, MD, everything — hand-checked against every raw Slack message.</p>
+        <span class="teaser">399 CALLS · 1,084 MESSAGES CHECKED · 207 RECOVERED</span>
       </div>
     </div>
   </section>
@@ -517,6 +525,88 @@
     </div>
   </section>
 
+  <!-- ============ STAGE 5 : LINE 1-11 AUDIT ============ -->
+  <section class="view" id="view-audit">
+    <button class="back-link" data-view="select">◂ Back to dashboards</button>
+    <div class="stage-head">
+      <p class="eyebrow">Full audit · last 14 days</p>
+      <h2>Line 1-11 — every issue, hand-checked</h2>
+      <p>Scope: every call-out on Lines 1 through 11 from Jun 25 – Jul 8, any issue type — oxygen, sealing, knife/blade, sensor, conveyor, metal detector, plate handling, everything. Instead of trusting the automated log, every raw Slack message in the Maintenance channel for this window was read and classified by hand.</p>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi" style="--accent:var(--cyan)"><div class="lbl">Total line call-outs</div><div class="val">399</div></div>
+      <div class="kpi" style="--accent:var(--phosphor)"><div class="lbl">Resolved</div><div class="val">247<small>62%</small></div></div>
+      <div class="kpi" style="--accent:var(--magenta)"><div class="lbl">No detail logged</div><div class="val">142<small>36%</small></div></div>
+      <div class="kpi" style="--accent:var(--amber)"><div class="lbl">Avg downtime</div><div class="val">46.5<small>min</small></div></div>
+      <div class="kpi" style="--accent:var(--violet)"><div class="lbl">Total downtime</div><div class="val">95.4<small>hrs</small></div></div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="p-head"><h4>The audit itself</h4><span class="tag">1,084 raw messages, hand-classified</span></div>
+      <div class="table-wrap">
+        <table class="profile-table">
+          <thead><tr><th>Bucket</th><th>Count</th><th>What it means</th></tr></thead>
+          <tbody>
+            <tr><td class="name">Already logged correctly</td><td class="num">180</td><td class="role">Matched an existing row by timestamp — the automated pipeline got these right.</td></tr>
+            <tr><td class="name">Recovered &amp; added this pass</td><td class="num">207</td><td class="role">Real Line 1-11 issues that never made it into the log — added now, sourced straight from the thread.</td></tr>
+            <tr><td class="name">Not a Line 1-11 issue</td><td class="num">~390</td><td class="role">Freezers, docks, kitchen ovens, label lines, cup/patty/butter machines — real issues, just not these lines.</td></tr>
+            <tr><td class="name">Routine / no content</td><td class="num">~291</td><td class="role">Assembly/disassembly notices, acks, reactions, channel joins — nothing to log.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="callouts">
+      <div class="callout" style="--accent:var(--magenta)"><span class="badge">⚑ Pipeline stoppage</span><p>The log's automated feed stopped entirely after <b>09:50 CDT</b> on Jul 8 — <b>29 real issues</b> over the following ~14 hours were simply never captured. Not a misclassification, a hard outage.</p></div>
+      <div class="callout" style="--accent:var(--amber)"><span class="badge">⚑ Miss rate was worse further back</span><p>Jun 25–29: only <b>7 of ~99</b> real line issues were auto-logged (93% missed). By Jul 4–8 that improved to roughly <b>68%</b> caught automatically — better, but still losing a third.</p></div>
+      <div class="callout" style="--accent:var(--phosphor)"><span class="badge">⚑ Data integrity fix</span><p>One incident's resolution (Line 9 outfeed belt, Jul 5) had been misattributed to an unrelated, already-closed "map door" report — including a downtime figure and an impact number that don't appear anywhere in the real thread. Verified against the raw messages and corrected both rows.</p></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="p-head"><h4>By issue type</h4><span class="tag">not just oxygen</span></div>
+        <div id="chart-audit-type"></div>
+      </div>
+      <div class="panel">
+        <div class="p-head"><h4>By line</h4><span class="tag">Line 1 → Line 11</span></div>
+        <div id="chart-audit-line"></div>
+      </div>
+    </div>
+
+    <div class="grid-2b">
+      <div class="panel">
+        <div class="p-head"><h4>Shift split</h4><span class="tag">Days vs Nights</span></div>
+        <div id="meter-audit-shift"></div>
+      </div>
+      <div class="panel">
+        <div class="p-head"><h4>Downtime distribution</h4><span class="tag">123 resolved calls with logged minutes</span></div>
+        <div id="chart-audit-downtime"></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="p-head"><h4>By weekday</h4><span class="tag">Sun → Sat</span></div>
+      <div id="chart-audit-weekday"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="p-head"><h4>Top callers</h4><span class="tag">by call-outs reported, all issue types</span></div>
+        <div id="chart-audit-reporters"></div>
+      </div>
+      <div class="panel">
+        <div class="p-head"><h4>Top resolvers</h4><span class="tag">count · avg downtime cleared</span></div>
+        <div id="chart-audit-resolvers"></div>
+      </div>
+    </div>
+
+    <div class="callouts">
+      <div class="callout" style="--accent:var(--cyan)"><span class="badge">⚑ Not just oxygen</span><p>Oxygen/gas-flush is only <b>37%</b> of real Line 1-11 call-outs (149 of 399). Metal Detector (65), Conveyor (43), Plate Handling (36), Sealing/Tooling (34), Machine/Equipment (33), and Sensor (32) make up the other 63%.</p></div>
+      <div class="callout" style="--accent:var(--magenta)"><span class="badge">⚑ Staffing-shortage flashpoint</span><p>Jul 8, 19:20 — one message reported <b>5 lines down at once</b> (L1 sealing, L6 oxygen, L10 crushing plates, L11 sealing and high oxygen). A supervisor asked how to cover 5 lines simultaneously; the answer was all 8 available techs were already deployed on the floor.</p></div>
+    </div>
+  </section>
+
   <footer class="arcade-footer">Aurora Facility · Data: issues_log.csv (Slack maintenance / FSQA / escalation channels) · Updated Jul 8, 2026</footer>
 </div>
 
@@ -525,6 +615,8 @@
   "use strict";
 
   var DATA = {"total":231,"dateRange":{"start":"2026-05-08","end":"2026-07-08"},"daily":[{"date":"2026-05-08","count":11},{"date":"2026-05-09","count":4},{"date":"2026-05-10","count":5},{"date":"2026-05-11","count":6},{"date":"2026-05-12","count":12},{"date":"2026-05-13","count":6},{"date":"2026-05-14","count":11},{"date":"2026-05-15","count":6},{"date":"2026-05-16","count":11},{"date":"2026-05-17","count":6},{"date":"2026-05-18","count":5},{"date":"2026-05-19","count":7},{"date":"2026-05-20","count":5},{"date":"2026-05-21","count":3},{"date":"2026-05-22","count":4},{"date":"2026-05-23","count":5},{"date":"2026-05-24","count":1},{"date":"2026-05-25","count":2},{"date":"2026-05-26","count":1},{"date":"2026-05-27","count":3},{"date":"2026-05-28","count":2},{"date":"2026-05-31","count":1},{"date":"2026-06-01","count":2},{"date":"2026-06-02","count":3},{"date":"2026-06-03","count":1},{"date":"2026-06-04","count":3},{"date":"2026-06-05","count":1},{"date":"2026-06-06","count":1},{"date":"2026-06-08","count":1},{"date":"2026-06-09","count":1},{"date":"2026-06-10","count":3},{"date":"2026-06-11","count":1},{"date":"2026-06-12","count":1},{"date":"2026-06-13","count":2},{"date":"2026-06-15","count":5},{"date":"2026-06-16","count":7},{"date":"2026-06-17","count":3},{"date":"2026-06-18","count":2},{"date":"2026-06-20","count":1},{"date":"2026-06-21","count":1},{"date":"2026-06-23","count":1},{"date":"2026-06-24","count":1},{"date":"2026-06-26","count":1},{"date":"2026-06-27","count":1},{"date":"2026-06-28","count":2},{"date":"2026-06-29","count":1},{"date":"2026-06-30","count":1},{"date":"2026-07-01","count":6},{"date":"2026-07-02","count":12},{"date":"2026-07-03","count":6},{"date":"2026-07-04","count":13},{"date":"2026-07-05","count":7},{"date":"2026-07-06","count":3},{"date":"2026-07-07","count":15},{"date":"2026-07-08","count":5}],"weekly":[{"weekStart":"2026-05-03","count":15},{"weekStart":"2026-05-10","count":57},{"weekStart":"2026-05-17","count":35},{"weekStart":"2026-05-24","count":9},{"weekStart":"2026-05-31","count":12},{"weekStart":"2026-06-07","count":9},{"weekStart":"2026-06-14","count":18},{"weekStart":"2026-06-21","count":5},{"weekStart":"2026-06-28","count":41},{"weekStart":"2026-07-05","count":30}],"byShift":[{"shift":"Days","count":143},{"shift":"Nights","count":88}],"byWeekday":[{"day":"Sunday","count":23},{"day":"Monday","count":25},{"day":"Tuesday","count":48},{"day":"Wednesday","count":33},{"day":"Thursday","count":34},{"day":"Friday","count":30},{"day":"Saturday","count":38}],"byHalf":[{"half":"Back","count":102},{"half":"Front","count":129}],"byHour":[{"hour":0,"count":5},{"hour":1,"count":9},{"hour":4,"count":4},{"hour":5,"count":33},{"hour":6,"count":16},{"hour":7,"count":17},{"hour":8,"count":14},{"hour":9,"count":14},{"hour":10,"count":12},{"hour":11,"count":10},{"hour":12,"count":8},{"hour":13,"count":13},{"hour":14,"count":11},{"hour":15,"count":6},{"hour":16,"count":14},{"hour":17,"count":8},{"hour":18,"count":7},{"hour":19,"count":6},{"hour":20,"count":5},{"hour":21,"count":5},{"hour":22,"count":3},{"hour":23,"count":11}],"byStatus":[{"status":"Resolved","count":183},{"status":"Resolution details not provided","count":47},{"status":"In progress / awaiting parts","count":1}],"byEscalated":[{"escalated":"No","count":197},{"escalated":"Yes","count":34}],"byLine":[{"line":"Line 1","count":22},{"line":"Line 2","count":17},{"line":"Line 3","count":28},{"line":"Line 4","count":18},{"line":"Line 5","count":23},{"line":"Line 6","count":26},{"line":"Line 7","count":17},{"line":"Line 8","count":26},{"line":"Line 9","count":10},{"line":"Line 10","count":15},{"line":"Line 11","count":22}],"byReporter":[{"name":"Jared Cooper","count":40},{"name":"Elizabeth Cericola","count":22},{"name":"Andres Valverde","count":21},{"name":"Amit Patil","count":14},{"name":"Jonathan Bonilla","count":14},{"name":"Shaunessey West","count":13},{"name":"Jeremy Nelson","count":12},{"name":"Sheanna Donnelli","count":9},{"name":"Jesus Martinez","count":9},{"name":"Julio Segura Jr","count":8},{"name":"Ryan Lopez","count":8},{"name":"Gregory Turner","count":7},{"name":"Miguel Pereira","count":6},{"name":"John Doyle","count":6},{"name":"Eric Mulcahey","count":5}],"byResolver":[{"name":"John Doyle","count":15,"avgDowntimeMin":16},{"name":"Keith Grimes","count":14,"avgDowntimeMin":74.8},{"name":"Gregory Turner","count":12,"avgDowntimeMin":18.2},{"name":"Jessy Rodriguez","count":11,"avgDowntimeMin":40.6},{"name":"Julio Segura Jr","count":11,"avgDowntimeMin":11},{"name":"Ryan Lopez","count":9,"avgDowntimeMin":13},{"name":"Miguel Pereira","count":7,"avgDowntimeMin":66},{"name":"Tyler Christensen","count":6,"avgDowntimeMin":37.5},{"name":"Oscar Villalobos","count":5,"avgDowntimeMin":35},{"name":"Eric Mulcahey","count":5,"avgDowntimeMin":51.8},{"name":"Ronald Vogel","count":5,"avgDowntimeMin":59.8},{"name":"Eduardo Guzman","count":4,"avgDowntimeMin":24.5},{"name":"Jose Aguilar","count":4,"avgDowntimeMin":40.3},{"name":"Angel Mejia","count":3,"avgDowntimeMin":5},{"name":"David Wesley","count":2,"avgDowntimeMin":51}],"downtimeCount":105,"downtimeTotal":3888,"downtimeAvg":37,"downtimeMax":273,"downtimeBuckets":[{"bucket":"0-5","count":13},{"bucket":"6-15","count":32},{"bucket":"16-30","count":19},{"bucket":"31-60","count":28},{"bucket":"61-120","count":7},{"bucket":"120+","count":6}],"rootCauseFilled":85,"rootCauseBlank":146,"keywords":[{"keyword":"flush","count":50},{"keyword":"gas","count":39},{"keyword":"tool","count":17},{"keyword":"purge","count":13},{"keyword":"seal","count":12},{"keyword":"sensor","count":9},{"keyword":"recipe","count":6},{"keyword":"settings","count":6},{"keyword":"dirty","count":4},{"keyword":"pancake","count":3},{"keyword":"gasket","count":1},{"keyword":"calibrat","count":1}],"oxygenDirection":[{"direction":"High O2","count":69},{"direction":"Low O2","count":58}],"byCategory":[{"category":"Oxygen / gas flush","count":185},{"category":"Conveyor / feed","count":12},{"category":"Sealing & tooling","count":10},{"category":"Sensor / tray-length","count":7},{"category":"Other mechanical","count":7},{"category":"Metal detector (combo)","count":4},{"category":"Plate handling","count":3},{"category":"Air / pneumatic supply","count":3}]};
+
+  var AUDIT_DATA = {"total":399,"byIssueType":[{"issueType":"Oxygen/MAP","count":149},{"issueType":"Metal Detector","count":65},{"issueType":"Conveyor","count":43},{"issueType":"Plate Handling","count":36},{"issueType":"Sealing/Tooling","count":34},{"issueType":"Machine/Equipment","count":33},{"issueType":"Sensor","count":32},{"issueType":"Facility","count":3},{"issueType":"Oven/Grill","count":2},{"issueType":"Refrigeration/HVAC","count":2}],"byLine":[{"line":"Line 1","count":34},{"line":"Line 2","count":30},{"line":"Line 3","count":59},{"line":"Line 4","count":29},{"line":"Line 5","count":22},{"line":"Line 6","count":49},{"line":"Line 7","count":31},{"line":"Line 8","count":34},{"line":"Line 9","count":34},{"line":"Line 10","count":34},{"line":"Line 11","count":43}],"byShift":[{"shift":"Days","count":254},{"shift":"Nights","count":145}],"byWeekday":[{"day":"Sunday","count":70},{"day":"Monday","count":23},{"day":"Tuesday","count":71},{"day":"Wednesday","count":67},{"day":"Thursday","count":69},{"day":"Friday","count":47},{"day":"Saturday","count":52}],"downtimeBuckets":[{"bucket":"0-5","count":13},{"bucket":"6-15","count":40},{"bucket":"16-30","count":30},{"bucket":"31-60","count":16},{"bucket":"61-120","count":15},{"bucket":"120+","count":9}],"byReporter":[{"name":"Jared Cooper","count":71},{"name":"Jonathan Bonilla","count":47},{"name":"Andres Valverde","count":31},{"name":"Jessy Rodriguez","count":28},{"name":"Elizabeth Cericola","count":25},{"name":"Gregory Turner","count":22},{"name":"Marcela Tinajero","count":21},{"name":"Jeremy Nelson","count":20},{"name":"Shaunessey West","count":16},{"name":"John Doyle","count":15},{"name":"Sheanna Donnelli","count":13},{"name":"Julio Segura Jr","count":11},{"name":"Miguel Pereira","count":10},{"name":"Jesus Martinez","count":8}],"byResolver":[{"name":"Jessy Rodriguez","count":40,"avgDowntimeMin":30.4},{"name":"Gregory Turner","count":36,"avgDowntimeMin":17.3},{"name":"Julio Segura Jr","count":27,"avgDowntimeMin":17.8},{"name":"John Doyle","count":20,"avgDowntimeMin":16},{"name":"Oscar Villalobos","count":17,"avgDowntimeMin":16.9},{"name":"Miguel Pereira","count":14,"avgDowntimeMin":28.7},{"name":"Jose Aguilar","count":13,"avgDowntimeMin":76.5},{"name":"Keith Grimes","count":12,"avgDowntimeMin":156.4},{"name":"Angel Mejia","count":11,"avgDowntimeMin":16.5},{"name":"Eduardo Guzman","count":8,"avgDowntimeMin":16.6}]};
 
   var COLORS = { cyan:"#29f1ff", magenta:"#ff2f9e", amber:"#ffb400", phosphor:"#4dff9f", violet:"#9b6bff" };
   var GLOW = { cyan:"glow-cyan", magenta:"glow-magenta", amber:"glow-amber", phosphor:"glow-phosphor", violet:"glow-violet" };
@@ -756,6 +848,22 @@
       ], {height:34});
       hBarChart("chart-keywords", DATA.keywords.map(function(d){ return {label:KEY_LABELS[d.keyword]||d.keyword, count:d.count}; }),
         {labelKey:"label", valueKey:"count", color:"cyan", labelWidth:150, rowH:20, gap:8});
+    },
+    audit: function(){
+      hBarChart("chart-audit-type", AUDIT_DATA.byIssueType, {labelKey:"issueType", valueKey:"count", color:"magenta", labelWidth:150});
+      barChart("chart-audit-line", AUDIT_DATA.byLine.map(function(d){ return {label:d.line.replace("Line ","L"), count:d.count}; }),
+        {labelKey:"label", valueKey:"count", color:"phosphor", height:220, gap:14});
+      splitMeter("meter-audit-shift", [
+        {label:"Days", value:254, color:"cyan"},
+        {label:"Nights", value:145, color:"violet"}
+      ], {height:34});
+      barChart("chart-audit-downtime", AUDIT_DATA.downtimeBuckets.map(function(d){ return {label:d.bucket, count:d.count}; }),
+        {labelKey:"label", valueKey:"count", color:"amber", height:220, gap:16});
+      barChart("chart-audit-weekday", AUDIT_DATA.byWeekday.map(function(d){ return {label:d.day.slice(0,3).toUpperCase(), count:d.count}; }),
+        {labelKey:"label", valueKey:"count", color:"cyan", height:220, gap:18});
+      hBarChart("chart-audit-reporters", AUDIT_DATA.byReporter, {labelKey:"name", valueKey:"count", color:"magenta", labelWidth:150});
+      hBarChart("chart-audit-resolvers", AUDIT_DATA.byResolver, {labelKey:"name", valueKey:"count", color:"phosphor", labelWidth:150,
+        formatter:function(d){ return d.count + " · avg " + (d.avgDowntimeMin!=null && d.avgDowntimeMin>0 ? d.avgDowntimeMin+"m" : "—"); }});
     }
   };
   var rendered = {};
