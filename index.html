@@ -186,6 +186,20 @@
   .panel .p-head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px; gap:8px; flex-wrap:wrap;}
   .panel .p-head .tag{font-family:var(--font-disp); font-size:10.5px; letter-spacing:0.14em; color:var(--dim); text-transform:uppercase;}
   .panel h4{margin:0; font-family:var(--font-disp); font-size:13.5px; letter-spacing:0.03em; color:var(--hi); text-transform:uppercase;}
+  .drill-select{
+    font-family:var(--font-disp); font-size:12px; letter-spacing:0.04em;
+    color:var(--hi); background:var(--panel2);
+    border:1px solid var(--edge-dim); border-radius:8px;
+    padding:8px 12px; margin-bottom:14px; cursor:pointer;
+    max-width:100%; width:280px;
+  }
+  .drill-select:hover{border-color:var(--edge);}
+  .drill-select:focus-visible{outline:2px solid var(--cyan); outline-offset:2px; border-color:var(--cyan);}
+  .drill-hint{font-family:var(--font-body); font-size:13px; color:var(--dim); padding:24px 4px; text-align:center;}
+  .hbar-clickable{cursor:pointer;}
+  .hbar-clickable rect{transition:opacity .12s;}
+  .hbar-clickable:hover rect, .hbar-clickable:focus-visible rect{opacity:0.72;}
+  .hbar-clickable:focus-visible{outline:2px solid var(--cyan); outline-offset:2px;}
   .chart-scroll{overflow-x:auto; padding-bottom:4px;}
   .chart-scroll::-webkit-scrollbar{height:6px;}
   .chart-scroll::-webkit-scrollbar-thumb{background:var(--edge); border-radius:3px;}
@@ -348,8 +362,19 @@
     </div>
 
     <div class="panel" style="margin-bottom:16px;">
-      <div class="p-head"><h4>By issue type</h4><span class="tag">not just oxygen</span></div>
+      <div class="p-head"><h4>By issue type</h4><span class="tag">not just oxygen · click a bar to drill in</span></div>
       <div id="chart-issuetype"></div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px;" id="panel-issuetype-drill">
+      <div class="p-head"><h4>Daily trend by issue type</h4><span class="tag">14-day breakdown</span></div>
+      <select id="issuetype-select" class="drill-select" aria-label="Select an issue type to drill into">
+        <option value="">Select an issue type…</option>
+      </select>
+      <div class="chart-scroll">
+        <div id="issuetype-drill-hint" class="drill-hint">Pick an issue type above, or click a bar in the chart above, to see its day-by-day trend.</div>
+        <div id="chart-issuetype-daily"></div>
+      </div>
     </div>
 
     <div class="callouts">
@@ -494,7 +519,7 @@
 (function(){
   "use strict";
 
-  var DATA = {"total":464,"daily":[{"date":"2026-06-26","count":27},{"date":"2026-06-27","count":38},{"date":"2026-06-28","count":43},{"date":"2026-06-29","count":9},{"date":"2026-06-30","count":45},{"date":"2026-07-01","count":29},{"date":"2026-07-02","count":34},{"date":"2026-07-03","count":27},{"date":"2026-07-04","count":28},{"date":"2026-07-05","count":34},{"date":"2026-07-06","count":16},{"date":"2026-07-07","count":36},{"date":"2026-07-08","count":53},{"date":"2026-07-09","count":45}],"byShift":[{"shift":"Days","count":289},{"shift":"Nights","count":175}],"byWeekday":[{"day":"Sunday","count":77},{"day":"Monday","count":25},{"day":"Tuesday","count":81},{"day":"Wednesday","count":82},{"day":"Thursday","count":79},{"day":"Friday","count":54},{"day":"Saturday","count":66}],"byHour":[{"hour":0,"count":16},{"hour":1,"count":11},{"hour":2,"count":1},{"hour":4,"count":6},{"hour":5,"count":55},{"hour":6,"count":41},{"hour":7,"count":41},{"hour":8,"count":17},{"hour":9,"count":39},{"hour":10,"count":18},{"hour":11,"count":15},{"hour":12,"count":19},{"hour":13,"count":24},{"hour":14,"count":17},{"hour":15,"count":16},{"hour":16,"count":24},{"hour":17,"count":18},{"hour":18,"count":13},{"hour":19,"count":19},{"hour":20,"count":17},{"hour":21,"count":17},{"hour":22,"count":8},{"hour":23,"count":12}],"byStatus":[{"status":"Resolved","count":291},{"status":"Resolution details not provided","count":160},{"status":"In progress / awaiting parts","count":9},{"status":"Monitoring","count":4}],"byEscalated":[{"escalated":"Yes","count":35},{"escalated":"No","count":429}],"byIssueType":[{"issueType":"Oxygen/MAP","count":177},{"issueType":"Metal Detector","count":84},{"issueType":"Conveyor","count":51},{"issueType":"Sealing/Tooling","count":47},{"issueType":"Sensor","count":38},{"issueType":"Plate Handling","count":37},{"issueType":"Machine/Equipment","count":30}],"byLine":[{"line":"Line 1","count":39},{"line":"Line 2","count":40},{"line":"Line 3","count":69},{"line":"Line 4","count":38},{"line":"Line 5","count":29},{"line":"Line 6","count":63},{"line":"Line 7","count":36},{"line":"Line 8","count":44},{"line":"Line 9","count":33},{"line":"Line 10","count":42},{"line":"Line 11","count":50}],"byReporter":[{"name":"Jared Cooper","count":72},{"name":"Jonathan Bonilla","count":55},{"name":"Andres Valverde","count":35},{"name":"Elizabeth Cericola","count":30},{"name":"Jessy Rodriguez","count":29},{"name":"Marcela Tinajero","count":28},{"name":"Jeremy Nelson","count":25},{"name":"Gregory Turner","count":20},{"name":"John Doyle","count":19},{"name":"Shaunessey West","count":18},{"name":"Julio Segura Jr","count":18},{"name":"Sheanna Donnelli","count":14},{"name":"Miguel Pereira","count":13},{"name":"Francesco Cimmarrusti","count":11}],"byResolver":[{"name":"Jessy Rodriguez","count":42,"avgDowntimeMin":28.3},{"name":"Julio Segura Jr","count":38,"avgDowntimeMin":23.9},{"name":"Gregory Turner","count":34,"avgDowntimeMin":17.3},{"name":"Miguel Pereira","count":23,"avgDowntimeMin":43.6},{"name":"John Doyle","count":22,"avgDowntimeMin":10.3},{"name":"Oscar Villalobos","count":20,"avgDowntimeMin":16.7},{"name":"Jose Aguilar","count":14,"avgDowntimeMin":72},{"name":"Keith Grimes","count":13,"avgDowntimeMin":156.3},{"name":"Angel Mejia","count":13,"avgDowntimeMin":50.8},{"name":"Eduardo Guzman","count":13,"avgDowntimeMin":17.9},{"name":"Ryan Lopez","count":12,"avgDowntimeMin":29.8},{"name":"Andres Mazuera","count":10,"avgDowntimeMin":105.5},{"name":"Tim Soloff","count":8,"avgDowntimeMin":135.3},{"name":"Tristan Chandler","count":8,"avgDowntimeMin":24.8},{"name":"Tyler Christensen","count":6,"avgDowntimeMin":73.5}],"downtimeCount":146,"downtimeTotal":7238,"downtimeAvg":49.6,"downtimeMax":1040,"downtimeBuckets":[{"bucket":"0-5","count":20},{"bucket":"6-15","count":41},{"bucket":"16-30","count":35},{"bucket":"31-60","count":17},{"bucket":"61-120","count":22},{"bucket":"120+","count":11}],"rootCauseFilled":96,"rootCauseBlank":368,"keywords":[{"keyword":"flush","count":42},{"keyword":"seal","count":36},{"keyword":"gas","count":33},{"keyword":"sensor","count":33},{"keyword":"belt","count":24},{"keyword":"tool","count":23},{"keyword":"recipe","count":20},{"keyword":"blade","count":13},{"keyword":"purge","count":10},{"keyword":"gasket","count":8},{"keyword":"settings","count":8},{"keyword":"pancake","count":7},{"keyword":"calibrat","count":4},{"keyword":"dirty","count":3},{"keyword":"screw","count":2},{"keyword":"film","count":2},{"keyword":"knife","count":1}]};
+  var DATA = {"total":464,"daily":[{"date":"2026-06-26","count":27},{"date":"2026-06-27","count":38},{"date":"2026-06-28","count":43},{"date":"2026-06-29","count":9},{"date":"2026-06-30","count":45},{"date":"2026-07-01","count":29},{"date":"2026-07-02","count":34},{"date":"2026-07-03","count":27},{"date":"2026-07-04","count":28},{"date":"2026-07-05","count":34},{"date":"2026-07-06","count":16},{"date":"2026-07-07","count":36},{"date":"2026-07-08","count":53},{"date":"2026-07-09","count":45}],"byShift":[{"shift":"Days","count":289},{"shift":"Nights","count":175}],"byWeekday":[{"day":"Sunday","count":77},{"day":"Monday","count":25},{"day":"Tuesday","count":81},{"day":"Wednesday","count":82},{"day":"Thursday","count":79},{"day":"Friday","count":54},{"day":"Saturday","count":66}],"byHour":[{"hour":0,"count":16},{"hour":1,"count":11},{"hour":2,"count":1},{"hour":4,"count":6},{"hour":5,"count":55},{"hour":6,"count":41},{"hour":7,"count":41},{"hour":8,"count":17},{"hour":9,"count":39},{"hour":10,"count":18},{"hour":11,"count":15},{"hour":12,"count":19},{"hour":13,"count":24},{"hour":14,"count":17},{"hour":15,"count":16},{"hour":16,"count":24},{"hour":17,"count":18},{"hour":18,"count":13},{"hour":19,"count":19},{"hour":20,"count":17},{"hour":21,"count":17},{"hour":22,"count":8},{"hour":23,"count":12}],"byStatus":[{"status":"Resolved","count":291},{"status":"Resolution details not provided","count":160},{"status":"In progress / awaiting parts","count":9},{"status":"Monitoring","count":4}],"byEscalated":[{"escalated":"Yes","count":35},{"escalated":"No","count":429}],"byIssueType":[{"issueType":"Oxygen/MAP","count":177},{"issueType":"Metal Detector","count":84},{"issueType":"Conveyor","count":51},{"issueType":"Sealing/Tooling","count":47},{"issueType":"Sensor","count":38},{"issueType":"Plate Handling","count":37},{"issueType":"Machine/Equipment","count":30}],"byLine":[{"line":"Line 1","count":39},{"line":"Line 2","count":40},{"line":"Line 3","count":69},{"line":"Line 4","count":38},{"line":"Line 5","count":29},{"line":"Line 6","count":63},{"line":"Line 7","count":36},{"line":"Line 8","count":44},{"line":"Line 9","count":33},{"line":"Line 10","count":42},{"line":"Line 11","count":50}],"byReporter":[{"name":"Jared Cooper","count":72},{"name":"Jonathan Bonilla","count":55},{"name":"Andres Valverde","count":35},{"name":"Elizabeth Cericola","count":30},{"name":"Jessy Rodriguez","count":29},{"name":"Marcela Tinajero","count":28},{"name":"Jeremy Nelson","count":25},{"name":"Gregory Turner","count":20},{"name":"John Doyle","count":19},{"name":"Shaunessey West","count":18},{"name":"Julio Segura Jr","count":18},{"name":"Sheanna Donnelli","count":14},{"name":"Miguel Pereira","count":13},{"name":"Francesco Cimmarrusti","count":11}],"byResolver":[{"name":"Jessy Rodriguez","count":42,"avgDowntimeMin":28.3},{"name":"Julio Segura Jr","count":38,"avgDowntimeMin":23.9},{"name":"Gregory Turner","count":34,"avgDowntimeMin":17.3},{"name":"Miguel Pereira","count":23,"avgDowntimeMin":43.6},{"name":"John Doyle","count":22,"avgDowntimeMin":10.3},{"name":"Oscar Villalobos","count":20,"avgDowntimeMin":16.7},{"name":"Jose Aguilar","count":14,"avgDowntimeMin":72},{"name":"Keith Grimes","count":13,"avgDowntimeMin":156.3},{"name":"Angel Mejia","count":13,"avgDowntimeMin":50.8},{"name":"Eduardo Guzman","count":13,"avgDowntimeMin":17.9},{"name":"Ryan Lopez","count":12,"avgDowntimeMin":29.8},{"name":"Andres Mazuera","count":10,"avgDowntimeMin":105.5},{"name":"Tim Soloff","count":8,"avgDowntimeMin":135.3},{"name":"Tristan Chandler","count":8,"avgDowntimeMin":24.8},{"name":"Tyler Christensen","count":6,"avgDowntimeMin":73.5}],"downtimeCount":146,"downtimeTotal":7238,"downtimeAvg":49.6,"downtimeMax":1040,"downtimeBuckets":[{"bucket":"0-5","count":20},{"bucket":"6-15","count":41},{"bucket":"16-30","count":35},{"bucket":"31-60","count":17},{"bucket":"61-120","count":22},{"bucket":"120+","count":11}],"rootCauseFilled":96,"rootCauseBlank":368,"keywords":[{"keyword":"flush","count":42},{"keyword":"seal","count":36},{"keyword":"gas","count":33},{"keyword":"sensor","count":33},{"keyword":"belt","count":24},{"keyword":"tool","count":23},{"keyword":"recipe","count":20},{"keyword":"blade","count":13},{"keyword":"purge","count":10},{"keyword":"gasket","count":8},{"keyword":"settings","count":8},{"keyword":"pancake","count":7},{"keyword":"calibrat","count":4},{"keyword":"dirty","count":3},{"keyword":"screw","count":2},{"keyword":"film","count":2},{"keyword":"knife","count":1}],"dailyByType":{"Oxygen/MAP":[{"date":"2026-06-26","count":16},{"date":"2026-06-27","count":20},{"date":"2026-06-28","count":16},{"date":"2026-06-29","count":3},{"date":"2026-06-30","count":19},{"date":"2026-07-01","count":10},{"date":"2026-07-02","count":12},{"date":"2026-07-03","count":10},{"date":"2026-07-04","count":16},{"date":"2026-07-05","count":5},{"date":"2026-07-06","count":4},{"date":"2026-07-07","count":18},{"date":"2026-07-08","count":14},{"date":"2026-07-09","count":14}],"Metal Detector":[{"date":"2026-06-26","count":1},{"date":"2026-06-27","count":5},{"date":"2026-06-28","count":11},{"date":"2026-06-29","count":3},{"date":"2026-06-30","count":13},{"date":"2026-07-01","count":9},{"date":"2026-07-02","count":5},{"date":"2026-07-03","count":8},{"date":"2026-07-04","count":5},{"date":"2026-07-05","count":5},{"date":"2026-07-06","count":1},{"date":"2026-07-07","count":4},{"date":"2026-07-08","count":7},{"date":"2026-07-09","count":7}],"Conveyor":[{"date":"2026-06-26","count":0},{"date":"2026-06-27","count":7},{"date":"2026-06-28","count":5},{"date":"2026-06-29","count":1},{"date":"2026-06-30","count":5},{"date":"2026-07-01","count":3},{"date":"2026-07-02","count":3},{"date":"2026-07-03","count":0},{"date":"2026-07-04","count":5},{"date":"2026-07-05","count":7},{"date":"2026-07-06","count":2},{"date":"2026-07-07","count":2},{"date":"2026-07-08","count":5},{"date":"2026-07-09","count":6}],"Plate Handling":[{"date":"2026-06-26","count":1},{"date":"2026-06-27","count":1},{"date":"2026-06-28","count":2},{"date":"2026-06-29","count":1},{"date":"2026-06-30","count":2},{"date":"2026-07-01","count":1},{"date":"2026-07-02","count":6},{"date":"2026-07-03","count":7},{"date":"2026-07-04","count":2},{"date":"2026-07-05","count":6},{"date":"2026-07-06","count":3},{"date":"2026-07-07","count":1},{"date":"2026-07-08","count":3},{"date":"2026-07-09","count":1}],"Sealing/Tooling":[{"date":"2026-06-26","count":3},{"date":"2026-06-27","count":0},{"date":"2026-06-28","count":3},{"date":"2026-06-29","count":0},{"date":"2026-06-30","count":2},{"date":"2026-07-01","count":2},{"date":"2026-07-02","count":3},{"date":"2026-07-03","count":0},{"date":"2026-07-04","count":0},{"date":"2026-07-05","count":3},{"date":"2026-07-06","count":1},{"date":"2026-07-07","count":5},{"date":"2026-07-08","count":16},{"date":"2026-07-09","count":9}],"Machine/Equipment":[{"date":"2026-06-26","count":5},{"date":"2026-06-27","count":0},{"date":"2026-06-28","count":2},{"date":"2026-06-29","count":0},{"date":"2026-06-30","count":1},{"date":"2026-07-01","count":2},{"date":"2026-07-02","count":1},{"date":"2026-07-03","count":1},{"date":"2026-07-04","count":0},{"date":"2026-07-05","count":4},{"date":"2026-07-06","count":0},{"date":"2026-07-07","count":5},{"date":"2026-07-08","count":5},{"date":"2026-07-09","count":4}],"Sensor":[{"date":"2026-06-26","count":1},{"date":"2026-06-27","count":5},{"date":"2026-06-28","count":4},{"date":"2026-06-29","count":1},{"date":"2026-06-30","count":3},{"date":"2026-07-01","count":2},{"date":"2026-07-02","count":4},{"date":"2026-07-03","count":1},{"date":"2026-07-04","count":0},{"date":"2026-07-05","count":4},{"date":"2026-07-06","count":5},{"date":"2026-07-07","count":1},{"date":"2026-07-08","count":3},{"date":"2026-07-09","count":4}]}};
 
   var COLORS = { cyan:"#29f1ff", magenta:"#ff2f9e", amber:"#ffb400", phosphor:"#4dff9f", violet:"#9b6bff" };
   var GLOW = { cyan:"glow-cyan", magenta:"glow-magenta", amber:"glow-amber", phosphor:"glow-phosphor", violet:"glow-violet" };
@@ -563,10 +588,18 @@
       var val = d[valueKey];
       var bw = Math.max(plotW*(val/maxVal), 2);
       var rowColorKey = opts.colorFn ? opts.colorFn(d) : opts.color;
-      svg.appendChild(text(labelW-10, y+rowH*0.72, d[labelKey], "hbar-label", "end"));
-      svg.appendChild(el("rect", {x:labelW,y:y,width:bw,height:rowH,rx:3,fill:COLORS[rowColorKey],filter:"url(#"+GLOW[rowColorKey]+")"}));
+      var row = el("g", opts.onClick ? {class:"hbar-row hbar-clickable", tabindex:"0", role:"button", "aria-label":String(d[labelKey])} : {class:"hbar-row"});
+      row.appendChild(text(labelW-10, y+rowH*0.72, d[labelKey], "hbar-label", "end"));
+      row.appendChild(el("rect", {x:labelW,y:y,width:bw,height:rowH,rx:3,fill:COLORS[rowColorKey],filter:"url(#"+GLOW[rowColorKey]+")"}));
       var trail = opts.formatter ? opts.formatter(d) : String(val);
-      svg.appendChild(text(labelW+bw+8, y+rowH*0.72, trail, "hbar-value"));
+      row.appendChild(text(labelW+bw+8, y+rowH*0.72, trail, "hbar-value"));
+      if (opts.onClick){
+        row.addEventListener("click", function(){ opts.onClick(d); });
+        row.addEventListener("keydown", function(e){
+          if (e.key === "Enter" || e.key === " "){ e.preventDefault(); opts.onClick(d); }
+        });
+      }
+      svg.appendChild(row);
     });
     mount.appendChild(svg);
   }
@@ -640,6 +673,23 @@
     sensor:"Sensor", calibrat:"Calibration", gasket:"Gasket", belt:"Belt / conveyor", blade:"Blade / knife",
     film:"Film", screw:"Screw / hardware", knife:"Blade / knife"};
 
+  var ISSUETYPE_COLOR = {"Oxygen/MAP":"cyan", "Metal Detector":"magenta", "Conveyor":"amber",
+    "Sealing/Tooling":"phosphor", "Sensor":"violet", "Plate Handling":"magenta", "Machine/Equipment":"amber"};
+
+  function renderIssueTypeDrill(issueType){
+    var hint = document.getElementById("issuetype-drill-hint");
+    var mount = document.getElementById("chart-issuetype-daily");
+    mount.innerHTML = "";
+    if (!issueType || !DATA.dailyByType[issueType]){
+      hint.style.display = "block";
+      return;
+    }
+    hint.style.display = "none";
+    var series = DATA.dailyByType[issueType];
+    barChart("chart-issuetype-daily", series.map(function(d){ return {label:d.date.slice(5), count:d.count}; }),
+      {labelKey:"label", valueKey:"count", color: ISSUETYPE_COLOR[issueType] || "cyan", height:220, gap:14, minWidth:640});
+  }
+
   var renderers = {
     overview: function(){
       heroChart("chart-hero", DATA.daily);
@@ -650,7 +700,20 @@
         {label:"Not escalated", value:429, color:"cyan"},
         {label:"Escalated", value:35, color:"magenta"}
       ]);
-      hBarChart("chart-issuetype", DATA.byIssueType, {labelKey:"issueType", valueKey:"count", color:"violet", labelWidth:170, rowH:22, gap:9});
+      hBarChart("chart-issuetype", DATA.byIssueType, {labelKey:"issueType", valueKey:"count", color:"violet", labelWidth:170, rowH:22, gap:9,
+        onClick:function(d){
+          var sel = document.getElementById("issuetype-select");
+          sel.value = d.issueType;
+          renderIssueTypeDrill(d.issueType);
+        }});
+      var issuetypeSelect = document.getElementById("issuetype-select");
+      DATA.byIssueType.forEach(function(d){
+        var opt = document.createElement("option");
+        opt.value = d.issueType;
+        opt.textContent = d.issueType + " (" + d.count + ")";
+        issuetypeSelect.appendChild(opt);
+      });
+      issuetypeSelect.addEventListener("change", function(e){ renderIssueTypeDrill(e.target.value); });
     },
     time: function(){
       splitMeter("meter-shift", [
