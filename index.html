@@ -1,0 +1,695 @@
+<title>MAP MACHINE ARCADE — Aurora Call-Out Analytics</title>
+<style>
+  :root{
+    --void:#0a0118;
+    --panel:#150c2b;
+    --panel2:#1c1238;
+    --edge:#3a2a6b;
+    --edge-dim:#26194a;
+    --cyan:#29f1ff;
+    --magenta:#ff2f9e;
+    --amber:#ffb400;
+    --phosphor:#4dff9f;
+    --violet:#9b6bff;
+    --hi:#f4eeff;
+    --mid:#b9a9e0;
+    --dim:#7c6ba3;
+    --font-disp: ui-monospace, "Cascadia Code", "Consolas", "SF Mono", "Menlo", monospace;
+    --font-body: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse 90% 60% at 50% 0%, #1a0f38 0%, var(--void) 60%);
+    color:var(--hi);
+    font-family:var(--font-body);
+    min-height:100vh;
+    padding:22px 14px 60px;
+    -webkit-font-smoothing:antialiased;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important; transition:none !important;}
+  }
+
+  /* ---------- scanline / crt overlay ---------- */
+  .crt-overlay{
+    position:fixed; inset:0; pointer-events:none; z-index:50;
+    background:repeating-linear-gradient(
+      to bottom, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 1px,
+      transparent 1px, transparent 3px
+    );
+    mix-blend-mode:overlay;
+  }
+  .crt-vignette{
+    position:fixed; inset:0; pointer-events:none; z-index:51;
+    box-shadow: inset 0 0 18vw 2vw rgba(0,0,0,0.75);
+  }
+
+  /* ---------- cabinet frame ---------- */
+  .cabinet{
+    max-width:1180px; margin:0 auto; position:relative;
+    border:2px solid var(--edge);
+    border-radius:18px;
+    background:linear-gradient(180deg, #120a26 0%, #0d0620 100%);
+    box-shadow:
+      0 0 0 6px #08041580,
+      0 30px 80px -20px rgba(155,107,255,0.25),
+      inset 0 0 60px rgba(41,241,255,0.04);
+    padding:22px 22px 30px;
+  }
+  .bolt{
+    position:absolute; width:9px; height:9px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #6a5a99, #241a44 70%);
+    box-shadow:0 0 6px rgba(0,0,0,0.6);
+  }
+  .bolt.tl{top:12px; left:12px;} .bolt.tr{top:12px; right:12px;}
+  .bolt.bl{bottom:12px; left:12px;} .bolt.br{bottom:12px; right:12px;}
+
+  /* ---------- marquee ---------- */
+  .marquee{
+    text-align:center; padding:6px 0 18px;
+    border-bottom:1px dashed var(--edge-dim);
+    margin-bottom:18px;
+  }
+  .marquee h1{
+    font-family:var(--font-disp);
+    font-size:clamp(26px,4.4vw,44px);
+    font-weight:700;
+    letter-spacing:0.06em;
+    margin:0 0 8px;
+    color:var(--cyan);
+    text-shadow:
+      0 0 2px #fff, 0 0 10px var(--cyan), 0 0 26px var(--magenta), 0 0 46px rgba(255,47,158,0.35);
+    animation:flicker 4.2s infinite steps(30);
+    text-wrap:balance;
+  }
+  @keyframes flicker{
+    0%,97%,100%{opacity:1;} 97.4%{opacity:0.82;} 97.8%{opacity:1;} 98.4%{opacity:0.7;} 98.7%{opacity:1;}
+  }
+  .marquee .sub{
+    font-family:var(--font-disp);
+    font-size:12px; letter-spacing:0.18em; color:var(--mid);
+    text-transform:uppercase;
+  }
+  .marquee .sub b{color:var(--amber); font-weight:700;}
+
+  /* ---------- nav ---------- */
+  .nav{
+    display:flex; gap:8px; flex-wrap:wrap; justify-content:center;
+    margin-bottom:26px;
+  }
+  .nav button{
+    font-family:var(--font-disp);
+    font-size:11px; letter-spacing:0.09em; text-transform:uppercase;
+    color:var(--mid); background:var(--panel);
+    border:1px solid var(--edge-dim); border-radius:8px;
+    padding:9px 14px; cursor:pointer;
+    transition:color .15s, border-color .15s, box-shadow .15s, background .15s;
+  }
+  .nav button:hover{color:var(--hi); border-color:var(--edge);}
+  .nav button:focus-visible{outline:2px solid var(--cyan); outline-offset:2px;}
+  .nav button.active{
+    color:#08041a; background:var(--cyan); border-color:var(--cyan);
+    box-shadow:0 0 16px rgba(41,241,255,0.55);
+  }
+
+  /* ---------- views ---------- */
+  .view{display:none;}
+  .view.active{display:block; animation:fadeIn .25s ease-out;}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;}}
+
+  .stage-head{margin-bottom:20px;}
+  .stage-head .eyebrow{
+    font-family:var(--font-disp); font-size:11px; letter-spacing:0.2em;
+    color:var(--amber); text-transform:uppercase; margin:0 0 6px;
+  }
+  .stage-head h2{
+    font-family:var(--font-disp); font-size:clamp(20px,3vw,28px);
+    margin:0 0 6px; color:var(--hi); letter-spacing:0.02em; text-wrap:balance;
+  }
+  .stage-head p{margin:0; color:var(--mid); max-width:65ch; line-height:1.55; font-size:14.5px;}
+
+  /* ---------- select screen ---------- */
+  .cab-grid{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+    gap:16px; margin-top:8px;
+  }
+  .cab-btn{
+    position:relative; text-align:left; cursor:pointer;
+    background:linear-gradient(180deg, var(--panel2), var(--panel));
+    border:1px solid var(--edge-dim); border-radius:14px;
+    padding:20px 18px 18px; color:var(--hi); font-family:var(--font-body);
+    transition:transform .15s, box-shadow .15s, border-color .15s;
+  }
+  .cab-btn:hover, .cab-btn:focus-visible{
+    transform:translateY(-3px);
+    border-color:var(--glow, var(--cyan));
+    box-shadow:0 10px 28px -8px rgba(0,0,0,0.6), 0 0 24px -4px var(--glow, var(--cyan));
+    outline:none;
+  }
+  .cab-btn .stage-num{
+    font-family:var(--font-disp); font-size:11px; letter-spacing:0.16em;
+    color:var(--glow, var(--cyan)); text-transform:uppercase; display:block; margin-bottom:10px;
+  }
+  .cab-btn h3{margin:0 0 8px; font-family:var(--font-disp); font-size:18px; letter-spacing:0.03em;}
+  .cab-btn p{margin:0 0 14px; font-size:13px; color:var(--mid); line-height:1.5;}
+  .cab-btn .teaser{
+    font-family:var(--font-disp); font-size:12px; color:var(--glow, var(--cyan));
+    border-top:1px dashed var(--edge-dim); padding-top:10px; letter-spacing:0.03em;
+  }
+  .cab-btn .press{
+    position:absolute; top:16px; right:16px; width:26px; height:26px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, var(--glow2,#5ff), var(--glow,#0aa) 75%);
+    box-shadow:0 3px 0 rgba(0,0,0,0.5), 0 0 10px var(--glow,#0aa);
+  }
+
+  /* ---------- kpi row ---------- */
+  .kpi-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:22px;}
+  .kpi{
+    background:var(--panel); border:1px solid var(--edge-dim); border-radius:10px;
+    padding:14px 16px; position:relative; overflow:hidden;
+  }
+  .kpi::before{content:"";position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--accent,var(--cyan)); box-shadow:0 0 10px var(--accent,var(--cyan));}
+  .kpi .lbl{font-family:var(--font-disp); font-size:10.5px; letter-spacing:0.12em; color:var(--dim); text-transform:uppercase; margin-bottom:6px;}
+  .kpi .val{font-family:var(--font-disp); font-size:26px; color:var(--accent,var(--cyan)); font-variant-numeric:tabular-nums; text-shadow:0 0 12px var(--accent, var(--cyan));}
+  .kpi .val small{font-size:13px; color:var(--mid); margin-left:4px; text-shadow:none;}
+
+  /* ---------- panels / charts ---------- */
+  .grid-2{display:grid; grid-template-columns:1.4fr 1fr; gap:16px; margin-bottom:16px;}
+  .grid-2b{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;}
+  @media (max-width:840px){ .grid-2, .grid-2b{grid-template-columns:1fr;} }
+  .panel{
+    background:linear-gradient(180deg, var(--panel), #110a22);
+    border:1px solid var(--edge-dim); border-radius:12px; padding:16px 18px 18px;
+  }
+  .panel .p-head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px; gap:8px; flex-wrap:wrap;}
+  .panel .p-head .tag{font-family:var(--font-disp); font-size:10.5px; letter-spacing:0.14em; color:var(--dim); text-transform:uppercase;}
+  .panel h4{margin:0; font-family:var(--font-disp); font-size:13.5px; letter-spacing:0.03em; color:var(--hi); text-transform:uppercase;}
+  .chart-scroll{overflow-x:auto; padding-bottom:4px;}
+  .chart-scroll::-webkit-scrollbar{height:6px;}
+  .chart-scroll::-webkit-scrollbar-thumb{background:var(--edge); border-radius:3px;}
+  .chart-svg{display:block;}
+  .gridline{stroke:var(--edge-dim); stroke-width:1;}
+  .bar-value{font-family:var(--font-disp); font-size:11px; fill:var(--hi); font-variant-numeric:tabular-nums;}
+  .bar-label{font-family:var(--font-disp); font-size:10px; fill:var(--dim); text-transform:uppercase;}
+  .hbar-label{font-family:var(--font-body); font-size:12px; fill:var(--mid);}
+  .hbar-value{font-family:var(--font-disp); font-size:11.5px; fill:var(--hi); font-variant-numeric:tabular-nums;}
+  .meter-label{font-family:var(--font-disp); font-size:11px; fill:var(--mid); text-transform:uppercase;}
+
+  /* ---------- callouts ---------- */
+  .callouts{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; margin:18px 0 8px;}
+  .callout{
+    background:var(--panel2); border:1px solid var(--edge-dim); border-left:3px solid var(--accent,var(--phosphor));
+    border-radius:8px; padding:12px 14px;
+  }
+  .callout .badge{
+    font-family:var(--font-disp); font-size:10px; letter-spacing:0.14em; color:var(--accent,var(--phosphor));
+    text-transform:uppercase; margin-bottom:6px; display:block;
+  }
+  .callout p{margin:0; font-size:13.5px; line-height:1.55; color:var(--hi);}
+  .callout p b{color:var(--accent,var(--phosphor)); font-weight:700;}
+
+  footer.arcade-footer{
+    text-align:center; margin-top:26px; font-family:var(--font-disp);
+    font-size:10.5px; letter-spacing:0.14em; color:var(--dim); text-transform:uppercase;
+  }
+  .back-link{
+    font-family:var(--font-disp); font-size:11px; letter-spacing:0.1em; color:var(--mid);
+    background:none; border:1px solid var(--edge-dim); border-radius:7px; padding:7px 12px;
+    cursor:pointer; text-transform:uppercase; margin-bottom:18px;
+  }
+  .back-link:hover{color:var(--cyan); border-color:var(--cyan);}
+</style>
+
+<div class="crt-overlay" aria-hidden="true"></div>
+<div class="crt-vignette" aria-hidden="true"></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="glow-cyan" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="glow-magenta" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="glow-amber" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="glow-phosphor" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="glow-violet" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+</svg>
+
+<div class="cabinet">
+  <span class="bolt tl"></span><span class="bolt tr"></span><span class="bolt bl"></span><span class="bolt br"></span>
+
+  <div class="marquee">
+    <h1>MAP MACHINE ARCADE</h1>
+    <div class="sub">AURORA CALL-OUT ANALYTICS · <b>MAY 8 – JUL 8</b> · 208 CALL-OUTS LOGGED</div>
+  </div>
+
+  <div class="nav">
+    <button data-view="select" class="active">▸ Select</button>
+    <button data-view="overview">Stage 1 · Overview</button>
+    <button data-view="time">Stage 2 · Time Attack</button>
+    <button data-view="people">Stage 3 · Player Rankings</button>
+    <button data-view="lines">Stage 4 · Boss Room</button>
+  </div>
+
+  <!-- ============ SELECT SCREEN ============ -->
+  <section class="view active" id="view-select">
+    <div class="stage-head">
+      <p class="eyebrow">◂ Insert data to continue ▸</p>
+      <h2>Select your dashboard</h2>
+      <p>Four cuts of the same 208 MAP-machine call-outs from the last two months of Slack call-outs — Oxygen/MAP line issues plus every direct MAP-machine sealing report. Pick a stage.</p>
+    </div>
+    <div class="cab-grid">
+      <div class="cab-btn" tabindex="0" role="button" data-view="overview" style="--glow:var(--cyan)">
+        <span class="press"></span>
+        <span class="stage-num">Stage 1</span>
+        <h3>System Overview</h3>
+        <p>Volume, trend, status mix, escalations — the top-line read.</p>
+        <span class="teaser">208 CALLS · 79% CLEARED · 28 ESCALATED</span>
+      </div>
+      <div class="cab-btn" tabindex="0" role="button" data-view="time" style="--glow:var(--amber); --glow2:#ffd77a">
+        <span class="press" style="--glow:var(--amber); --glow2:#ffd77a"></span>
+        <span class="stage-num">Stage 2</span>
+        <h3>Time Attack</h3>
+        <p>Shift, weekday, and hour-of-day patterns — when the calls hit.</p>
+        <span class="teaser">PEAK HOUR: 05:00 · PEAK DAY: TUESDAY</span>
+      </div>
+      <div class="cab-btn" tabindex="0" role="button" data-view="people" style="--glow:var(--magenta); --glow2:#ff8cc8">
+        <span class="press" style="--glow:var(--magenta); --glow2:#ff8cc8"></span>
+        <span class="stage-num">Stage 3</span>
+        <h3>Player Rankings</h3>
+        <p>Top callers and top fixers, with average clear time per resolver.</p>
+        <span class="teaser">TOP CALLER: J. COOPER ×35</span>
+      </div>
+      <div class="cab-btn" tabindex="0" role="button" data-view="lines" style="--glow:var(--phosphor); --glow2:#a6ffd6">
+        <span class="press" style="--glow:var(--phosphor); --glow2:#a6ffd6"></span>
+        <span class="stage-num">Stage 4</span>
+        <h3>Boss Room</h3>
+        <p>Hottest lines, downtime distribution, and root-cause themes.</p>
+        <span class="teaser">LINE 3 · 27 HITS · TOP CAUSE: GAS FLUSH</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 1 : OVERVIEW ============ -->
+  <section class="view" id="view-overview">
+    <button class="back-link" data-view="select">◂ Back to select</button>
+    <div class="stage-head">
+      <p class="eyebrow">Stage 1</p>
+      <h2>System overview</h2>
+      <p>Every MAP-machine call-out logged May 8 – Jul 8, 2026. 208 total, averaging 3.4 a day.</p>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi" style="--accent:var(--cyan)"><div class="lbl">Total call-outs</div><div class="val">208</div></div>
+      <div class="kpi" style="--accent:var(--phosphor)"><div class="lbl">Cleared</div><div class="val">165<small>79%</small></div></div>
+      <div class="kpi" style="--accent:var(--magenta)"><div class="lbl">Escalated</div><div class="val">28<small>13%</small></div></div>
+      <div class="kpi" style="--accent:var(--amber)"><div class="lbl">Avg downtime</div><div class="val">33.7<small>min</small></div></div>
+      <div class="kpi" style="--accent:var(--violet)"><div class="lbl">Total downtime</div><div class="val">51.1<small>hrs</small></div></div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="p-head"><h4>Weekly trend — the horizon run</h4><span class="tag">10 weeks · Mon–Sun</span></div>
+      <div class="chart-scroll"><div id="chart-hero"></div></div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="p-head"><h4>Daily signal</h4><span class="tag">51 active days</span></div>
+      <div class="chart-scroll"><div id="chart-daily"></div></div>
+    </div>
+
+    <div class="grid-2b">
+      <div class="panel">
+        <div class="p-head"><h4>Status mix</h4><span class="tag">how calls closed</span></div>
+        <div id="chart-status"></div>
+      </div>
+      <div class="panel">
+        <div class="p-head"><h4>Threat &amp; direction meters</h4><span class="tag">escalation · O2 side</span></div>
+        <div style="margin-bottom:16px;" id="meter-escalated"></div>
+        <div id="meter-oxygen"></div>
+      </div>
+    </div>
+
+    <div class="callouts">
+      <div class="callout" style="--accent:var(--amber)"><span class="badge">⚑ Spike</span><p>Week of <b>Jun 28</b> logged <b>38</b> call-outs — up 7× from the June lull the week before (<b>5</b>, week of Jun 21). Biggest single-week jump in the window.</p></div>
+      <div class="callout" style="--accent:var(--magenta)"><span class="badge">⚑ Visibility gap</span><p><b>42 of 208 (20%)</b> closed with no resolution ever logged — the single biggest bucket after "Resolved."</p></div>
+      <div class="callout" style="--accent:var(--cyan)"><span class="badge">⚑ Steady load</span><p>Averaging <b>3.4 calls/day</b> over 62 days, but 5 of the 10 weeks carried <b>&gt;60%</b> of total volume.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 2 : TIME ATTACK ============ -->
+  <section class="view" id="view-time">
+    <button class="back-link" data-view="select">◂ Back to select</button>
+    <div class="stage-head">
+      <p class="eyebrow">Stage 2</p>
+      <h2>Time attack — when the calls hit</h2>
+      <p>Same 208 call-outs, sliced by shift, weekday, and clock hour.</p>
+    </div>
+
+    <div class="grid-2b">
+      <div class="panel">
+        <div class="p-head"><h4>Shift split</h4><span class="tag">Days 06:00–18:00 vs Nights</span></div>
+        <div id="meter-shift"></div>
+      </div>
+      <div class="panel">
+        <div class="p-head"><h4>Week half</h4><span class="tag">Sun–Wed (Front) vs Thu–Sat (Back)</span></div>
+        <div id="meter-half"></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="p-head"><h4>By weekday</h4><span class="tag">Sun → Sat</span></div>
+      <div id="chart-weekday"></div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="p-head"><h4>By hour of day</h4><span class="tag">00:00 → 23:00</span></div>
+      <div class="chart-scroll"><div id="chart-hour"></div></div>
+    </div>
+
+    <div class="callouts">
+      <div class="callout" style="--accent:var(--amber)"><span class="badge">⚑ Peak hour</span><p><b>05:00</b> is the single busiest hour — <b>27 calls</b>, more than 3× the average hour. Looks like first-shift startup and gas-flush calibration clustering right at shift change.</p></div>
+      <div class="callout" style="--accent:var(--cyan)"><span class="badge">⚑ Peak day</span><p><b>Tuesday</b> runs 2.3× hotter than Sunday — <b>46</b> calls vs <b>20</b> — despite both being regular production days.</p></div>
+      <div class="callout" style="--accent:var(--violet)"><span class="badge">⚑ Days lead</span><p><b>Days</b> shift (06:00–18:00) carries <b>64%</b> of all call-outs (133 of 208); Nights carries the remaining 36% (75).</p></div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 3 : PLAYER RANKINGS ============ -->
+  <section class="view" id="view-people">
+    <button class="back-link" data-view="select">◂ Back to select</button>
+    <div class="stage-head">
+      <p class="eyebrow">Stage 3</p>
+      <h2>Player rankings</h2>
+      <p>Who's calling in MAP issues, and who's clearing them — with average time-to-clear per resolver.</p>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="p-head"><h4>Top callers</h4><span class="tag">by call-outs reported</span></div>
+        <div id="chart-reporters"></div>
+      </div>
+      <div class="panel">
+        <div class="p-head"><h4>Top resolvers</h4><span class="tag">count · avg downtime cleared</span></div>
+        <div id="chart-resolvers"></div>
+      </div>
+    </div>
+
+    <div class="callouts">
+      <div class="callout" style="--accent:var(--magenta)"><span class="badge">⚑ High score</span><p><b>Jared Cooper</b> alone reported <b>35 of 208</b> call-outs (17%) — almost double the #2 caller, Andres Valverde (18).</p></div>
+      <div class="callout" style="--accent:var(--phosphor)"><span class="badge">⚑ Fastest clears</span><p><b>Gregory Turner</b> (11 fixes, avg <b>20.4 min</b>) and <b>John Doyle</b> (11 fixes, avg <b>23 min</b>) post the quickest average clear times among high-volume resolvers.</p></div>
+      <div class="callout" style="--accent:var(--amber)"><span class="badge">⚑ Data quality flag</span><p>One logged fix (Wilberth Carrizal, Line 1, Jun 6) carries <b>273 min</b> of downtime while its own call-out text says "15 min downtime" — worth an audit pass on that entry.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 4 : BOSS ROOM ============ -->
+  <section class="view" id="view-lines">
+    <button class="back-link" data-view="select">◂ Back to select</button>
+    <div class="stage-head">
+      <p class="eyebrow">Stage 4</p>
+      <h2>Boss room — lines &amp; root causes</h2>
+      <p>Which physical lines take the most MAP hits, how long they're down, and what's actually causing it.</p>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="p-head"><h4>By line</h4><span class="tag">Line 1 → Line 11</span></div>
+        <div id="chart-lines"></div>
+      </div>
+      <div class="panel">
+        <div class="p-head"><h4>Downtime distribution</h4><span class="tag">91 resolved calls with logged minutes</span></div>
+        <div id="chart-downtime"></div>
+      </div>
+    </div>
+
+    <div class="grid-2b">
+      <div class="panel">
+        <div class="p-head"><h4>Root cause logged?</h4><span class="tag">filled vs blank</span></div>
+        <div id="meter-rootcause"></div>
+      </div>
+      <div class="panel">
+        <div class="p-head"><h4>Root-cause themes</h4><span class="tag">keyword mentions across all 208</span></div>
+        <div id="chart-keywords"></div>
+      </div>
+    </div>
+
+    <div class="callouts">
+      <div class="callout" style="--accent:var(--phosphor)"><span class="badge">⚑ Hottest line</span><p><b>Line 3</b> takes the most MAP hits in the dataset — <b>27 calls</b>, 3× Line 9's count (9), the coolest line.</p></div>
+      <div class="callout" style="--accent:var(--cyan)"><span class="badge">⚑ Dominant cause</span><p>"<b>Flush</b>" and "<b>gas</b>" appear in <b>89 combined mentions</b> — gas-flush timing is the clear #1 failure signature, well ahead of tooling (17) or recipe mix-ups (9).</p></div>
+      <div class="callout" style="--accent:var(--magenta)"><span class="badge">⚑ Biggest lever</span><p><b>63%</b> of call-outs (132 of 208) closed with no root cause logged at all — the single biggest opportunity to actually cut repeat calls.</p></div>
+    </div>
+  </section>
+
+  <footer class="arcade-footer">Aurora Facility · Data: issues_log.csv (Slack maintenance / FSQA / escalation channels) · No continues remaining</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var DATA = {"total":208,"dateRange":{"start":"2026-05-08","end":"2026-07-08"},"daily":[{"date":"2026-05-08","count":8},{"date":"2026-05-09","count":4},{"date":"2026-05-10","count":5},{"date":"2026-05-11","count":6},{"date":"2026-05-12","count":12},{"date":"2026-05-13","count":5},{"date":"2026-05-14","count":11},{"date":"2026-05-15","count":6},{"date":"2026-05-16","count":10},{"date":"2026-05-17","count":6},{"date":"2026-05-18","count":5},{"date":"2026-05-19","count":7},{"date":"2026-05-20","count":5},{"date":"2026-05-21","count":3},{"date":"2026-05-22","count":4},{"date":"2026-05-23","count":5},{"date":"2026-05-25","count":2},{"date":"2026-05-26","count":1},{"date":"2026-05-27","count":2},{"date":"2026-05-28","count":1},{"date":"2026-05-31","count":1},{"date":"2026-06-02","count":1},{"date":"2026-06-03","count":1},{"date":"2026-06-04","count":1},{"date":"2026-06-05","count":1},{"date":"2026-06-06","count":1},{"date":"2026-06-08","count":1},{"date":"2026-06-09","count":1},{"date":"2026-06-10","count":3},{"date":"2026-06-12","count":1},{"date":"2026-06-13","count":2},{"date":"2026-06-15","count":5},{"date":"2026-06-16","count":7},{"date":"2026-06-17","count":3},{"date":"2026-06-18","count":1},{"date":"2026-06-20","count":1},{"date":"2026-06-21","count":1},{"date":"2026-06-23","count":1},{"date":"2026-06-24","count":1},{"date":"2026-06-26","count":1},{"date":"2026-06-27","count":1},{"date":"2026-06-28","count":2},{"date":"2026-06-30","count":1},{"date":"2026-07-01","count":5},{"date":"2026-07-02","count":12},{"date":"2026-07-03","count":5},{"date":"2026-07-04","count":13},{"date":"2026-07-05","count":5},{"date":"2026-07-06","count":3},{"date":"2026-07-07","count":15},{"date":"2026-07-08","count":3}],"weekly":[{"weekStart":"2026-05-03","count":12},{"weekStart":"2026-05-10","count":55},{"weekStart":"2026-05-17","count":35},{"weekStart":"2026-05-24","count":6},{"weekStart":"2026-05-31","count":6},{"weekStart":"2026-06-07","count":8},{"weekStart":"2026-06-14","count":17},{"weekStart":"2026-06-21","count":5},{"weekStart":"2026-06-28","count":38},{"weekStart":"2026-07-05","count":26}],"byShift":[{"shift":"Days","count":133},{"shift":"Nights","count":75}],"byWeekday":[{"day":"Sunday","count":20},{"day":"Monday","count":22},{"day":"Tuesday","count":46},{"day":"Wednesday","count":28},{"day":"Thursday","count":29},{"day":"Friday","count":26},{"day":"Saturday","count":37}],"byHalf":[{"half":"Back","count":92},{"half":"Front","count":116}],"byHour":[{"hour":0,"count":5},{"hour":1,"count":8},{"hour":4,"count":3},{"hour":5,"count":27},{"hour":6,"count":15},{"hour":7,"count":16},{"hour":8,"count":14},{"hour":9,"count":14},{"hour":10,"count":11},{"hour":11,"count":9},{"hour":12,"count":8},{"hour":13,"count":12},{"hour":14,"count":7},{"hour":15,"count":6},{"hour":16,"count":13},{"hour":17,"count":8},{"hour":18,"count":6},{"hour":19,"count":5},{"hour":20,"count":2},{"hour":21,"count":5},{"hour":22,"count":3},{"hour":23,"count":11}],"byStatus":[{"status":"Resolved","count":165},{"status":"Resolution details not provided","count":42},{"status":"In progress / awaiting parts","count":1}],"byEscalated":[{"escalated":"No","count":180},{"escalated":"Yes","count":28}],"byLine":[{"line":"Line 1","count":20},{"line":"Line 2","count":12},{"line":"Line 3","count":27},{"line":"Line 4","count":18},{"line":"Line 5","count":20},{"line":"Line 6","count":23},{"line":"Line 7","count":16},{"line":"Line 8","count":24},{"line":"Line 9","count":9},{"line":"Line 10","count":12},{"line":"Line 11","count":21}],"byReporter":[{"name":"Jared Cooper","count":35},{"name":"Andres Valverde","count":18},{"name":"Elizabeth Cericola","count":17},{"name":"Jonathan Bonilla","count":13},{"name":"Shaunessey West","count":12},{"name":"Jeremy Nelson","count":10},{"name":"Sheanna Donnelli","count":9},{"name":"Jesus Martinez","count":9},{"name":"Amit Patil","count":9},{"name":"Ryan Lopez","count":8},{"name":"Julio Segura Jr","count":8},{"name":"Gregory Turner","count":7},{"name":"John Doyle","count":6},{"name":"Miguel Pereira","count":6},{"name":"Eric Mulcahey","count":5}],"byResolver":[{"name":"Keith Grimes","count":13,"avgDowntimeMin":77.3},{"name":"Gregory Turner","count":11,"avgDowntimeMin":20.4},{"name":"John Doyle","count":11,"avgDowntimeMin":23},{"name":"Ronald Vogel","count":5,"avgDowntimeMin":59.8},{"name":"Angel Mejia","count":3,"avgDowntimeMin":5},{"name":"Eric Mulcahey","count":2,"avgDowntimeMin":47.5},{"name":"Francesco Cimmarrusti","count":1,"avgDowntimeMin":53},{"name":"Tristan Chandler","count":1,"avgDowntimeMin":0},{"name":"Ashley Poller","count":1,"avgDowntimeMin":7},{"name":"Michael Petersen","count":1,"avgDowntimeMin":0},{"name":"David Wesley","count":1,"avgDowntimeMin":0},{"name":"Ariel Lopez","count":1,"avgDowntimeMin":2},{"name":"Julian Escobedo","count":1,"avgDowntimeMin":28},{"name":"Wilberth Carrizal","count":1,"avgDowntimeMin":273},{"name":"Francisco Chavez","count":1,"avgDowntimeMin":59}],"downtimeCount":91,"downtimeTotal":3068,"downtimeAvg":33.7,"downtimeMax":273,"downtimeBuckets":[{"bucket":"0-5","count":13},{"bucket":"6-15","count":29},{"bucket":"16-30","count":16},{"bucket":"31-60","count":24},{"bucket":"61-120","count":5},{"bucket":"120+","count":4}],"rootCauseFilled":76,"rootCauseBlank":132,"keywords":[{"keyword":"flush","count":50},{"keyword":"gas","count":39},{"keyword":"tool","count":17},{"keyword":"purge","count":12},{"keyword":"seal","count":11},{"keyword":"recipe","count":6},{"keyword":"settings","count":5},{"keyword":"dirty","count":4},{"keyword":"pancake","count":3},{"keyword":"sensor","count":2},{"keyword":"calibrat","count":1},{"keyword":"gasket","count":1},{"keyword":"oring","count":1}],"oxygenDirection":[{"direction":"High O2","count":69},{"direction":"Low O2","count":56}]};
+
+  var COLORS = { cyan:"#29f1ff", magenta:"#ff2f9e", amber:"#ffb400", phosphor:"#4dff9f", violet:"#9b6bff" };
+  var GLOW = { cyan:"glow-cyan", magenta:"glow-magenta", amber:"glow-amber", phosphor:"glow-phosphor", violet:"glow-violet" };
+
+  function el(tag, attrs){
+    var e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+  function text(x, y, str, cls, anchor){
+    var t = el("text", {x:x, y:y, class:cls || ""});
+    if (anchor) t.setAttribute("text-anchor", anchor);
+    t.textContent = str;
+    return t;
+  }
+
+  /* -------- vertical bar chart -------- */
+  function barChart(mountId, data, opts){
+    var mount = document.getElementById(mountId);
+    var labelKey = opts.labelKey, valueKey = opts.valueKey;
+    var color = COLORS[opts.color], glow = GLOW[opts.color];
+    var gap = opts.gap || 12;
+    var h = opts.height || 200, padTop = 26, padBottom = opts.padBottom || 34;
+    var plotH = h - padTop - padBottom;
+    var max = Math.max.apply(null, data.map(function(d){return d[valueKey];})) * 1.18;
+    var n = data.length;
+    var barW, w;
+    if (opts.fixedWidth){
+      barW = opts.barW || 34;
+      w = n * (barW + gap) + gap;
+    } else {
+      var avail = Math.max(mount.clientWidth || 0, opts.minWidth || 320);
+      barW = Math.max((avail - gap*(n+1)) / n, 16);
+      w = n * (barW + gap) + gap;
+    }
+    var svg = el("svg", {viewBox:"0 0 " + w + " " + h, width: opts.fixedWidth ? w : "100%", height:h, class:"chart-svg"});
+    for (var i=0;i<=3;i++){
+      var gy = padTop + plotH*i/3;
+      svg.appendChild(el("line", {x1:0,x2:w,y1:gy,y2:gy,class:"gridline"}));
+    }
+    data.forEach(function(d, i){
+      var val = d[valueKey];
+      var bh = Math.max(plotH * (val/max), 2);
+      var x = gap + i*(barW+gap);
+      var y = padTop + plotH - bh;
+      svg.appendChild(el("rect", {x:x,y:y,width:barW,height:bh,rx:3,fill:color,filter:"url(#"+glow+")"}));
+      svg.appendChild(text(x+barW/2, y-7, val, "bar-value", "middle"));
+      svg.appendChild(text(x+barW/2, h-padBottom+16, d[labelKey], "bar-label", "middle"));
+    });
+    mount.appendChild(svg);
+  }
+
+  /* -------- horizontal bar chart -------- */
+  function hBarChart(mountId, data, opts){
+    var mount = document.getElementById(mountId);
+    var labelKey = opts.labelKey, valueKey = opts.valueKey;
+    var color = COLORS[opts.color], glow = GLOW[opts.color];
+    var rowH = opts.rowH || 22, gap = opts.gap || 9;
+    var labelW = opts.labelWidth || 140;
+    var width = Math.max(mount.clientWidth || 0, opts.minWidth || 320);
+    var plotW = width - labelW - 70;
+    var max = Math.max.apply(null, data.map(function(d){return d[valueKey];})) * 1.1;
+    var h = data.length*(rowH+gap)+gap;
+    var svg = el("svg", {viewBox:"0 0 " + width + " " + h, width:"100%", height:h, class:"chart-svg"});
+    data.forEach(function(d,i){
+      var y = gap + i*(rowH+gap);
+      var val = d[valueKey];
+      var bw = Math.max(plotW*(val/max), 2);
+      svg.appendChild(text(labelW-10, y+rowH*0.72, d[labelKey], "hbar-label", "end"));
+      svg.appendChild(el("rect", {x:labelW,y:y,width:bw,height:rowH,rx:3,fill:color,filter:"url(#"+glow+")"}));
+      var trail = opts.formatter ? opts.formatter(d) : String(val);
+      svg.appendChild(text(labelW+bw+8, y+rowH*0.72, trail, "hbar-value"));
+    });
+    mount.appendChild(svg);
+  }
+
+  /* -------- split "health bar" meter -------- */
+  function splitMeter(mountId, segments, opts){
+    var mount = document.getElementById(mountId);
+    var width = Math.max(mount.clientWidth || 0, (opts && opts.minWidth) || 280);
+    var height = opts && opts.height || 30;
+    var total = segments.reduce(function(s,x){return s+x.value;},0);
+    var svg = el("svg", {viewBox:"0 0 " + width + " " + (height+28), width:"100%", height:height+28, class:"chart-svg"});
+    var x = 0;
+    segments.forEach(function(seg){
+      var w = Math.max(width*(seg.value/total), 1);
+      svg.appendChild(el("rect", {x:x,y:0,width:w,height:height,rx:4,fill:COLORS[seg.color],filter:"url(#"+GLOW[seg.color]+")"}));
+      var pct = Math.round(seg.value/total*100);
+      svg.appendChild(text(x+w/2, height+20, seg.label+" "+seg.value+" ("+pct+"%)", "meter-label", "middle"));
+      x += w;
+    });
+    mount.appendChild(svg);
+  }
+
+  /* -------- area sparkline -------- */
+  function sparkline(mountId, data, opts){
+    var mount = document.getElementById(mountId);
+    var valueKey = opts.valueKey;
+    var color = COLORS[opts.color], glow = GLOW[opts.color];
+    var width = data.length * (opts.step || 18);
+    var height = opts.height || 100, padTop=12, padBottom=22;
+    var plotH = height-padTop-padBottom;
+    var max = Math.max.apply(null, data.map(function(d){return d[valueKey];}));
+    var svg = el("svg", {viewBox:"0 0 " + width + " " + height, width:width, height:height, class:"chart-svg"});
+    var stepX = width/(data.length-1 || 1);
+    var pts = data.map(function(d,i){ return [i*stepX, padTop + plotH*(1-d[valueKey]/max)]; });
+    var pathD = pts.map(function(p,i){ return (i===0?"M":"L")+p[0].toFixed(1)+","+p[1].toFixed(1); }).join(" ");
+    var areaD = pathD + " L " + width + "," + (height-padBottom) + " L 0," + (height-padBottom) + " Z";
+    svg.appendChild(el("path", {d:areaD, fill:color, opacity:"0.16"}));
+    svg.appendChild(el("path", {d:pathD, fill:"none", stroke:color, "stroke-width":2, filter:"url(#"+glow+")"}));
+    // month markers
+    var lastMonth = "";
+    data.forEach(function(d,i){
+      var m = d.date.slice(0,7);
+      if (m !== lastMonth){
+        lastMonth = m;
+        svg.appendChild(text(i*stepX, height-6, d.date.slice(5), "bar-label"));
+      }
+    });
+    mount.appendChild(svg);
+  }
+
+  /* -------- hero "horizon run" weekly chart -------- */
+  function heroChart(mountId, data){
+    var mount = document.getElementById(mountId);
+    var W = 860, H = 300, horizonY = 168, baseY = 258;
+    var svg = el("svg", {viewBox:"0 0 "+W+" "+H, width:W, height:H, class:"chart-svg"});
+
+    // sun glow
+    var grad = el("radialGradient", {id:"sunGrad", cx:"50%", cy:"50%", r:"50%"});
+    var s1 = el("stop", {offset:"0%", "stop-color":"#ff2f9e", "stop-opacity":"0.55"});
+    var s2 = el("stop", {offset:"100%", "stop-color":"#ff2f9e", "stop-opacity":"0"});
+    grad.appendChild(s1); grad.appendChild(s2);
+    var defs = el("defs", {}); defs.appendChild(grad); svg.appendChild(defs);
+    svg.appendChild(el("circle", {cx:W/2, cy:horizonY, r:120, fill:"url(#sunGrad)"}));
+    svg.appendChild(el("circle", {cx:W/2, cy:horizonY, r:46, fill:"none", stroke:"#ffb400", "stroke-width":2, opacity:"0.8", filter:"url(#glow-amber)"}));
+
+    svg.appendChild(el("line", {x1:0,x2:W,y1:horizonY,y2:horizonY, stroke:"#3a2a6b", "stroke-width":1.5}));
+
+    // converging grid floor
+    var vpx = W/2;
+    var cols = 14;
+    for (var c=0;c<=cols;c++){
+      var bx = c*(W/cols);
+      svg.appendChild(el("line", {x1:bx, y1:baseY, x2:vpx, y2:horizonY, stroke:"#2f2159", "stroke-width":1}));
+    }
+    var rows = [0.18,0.36,0.56,0.78,1];
+    rows.forEach(function(f){
+      var y = horizonY + (baseY-horizonY)*f;
+      svg.appendChild(el("line", {x1:0, y1:y, x2:W, y2:y, stroke:"#2f2159", "stroke-width":1}));
+    });
+
+    // bars
+    var max = Math.max.apply(null, data.map(function(d){return d.count;})) * 1.15;
+    var gap = 18, barW = (W - gap*(data.length+1)) / data.length;
+    data.forEach(function(d,i){
+      var x = gap + i*(barW+gap);
+      var bh = (baseY-40) * (d.count/max);
+      var y = baseY - bh;
+      var color = i % 2 === 0 ? COLORS.cyan : COLORS.magenta;
+      var glow = i % 2 === 0 ? GLOW.cyan : GLOW.magenta;
+      svg.appendChild(el("rect", {x:x, y:y, width:barW, height:bh, rx:3, fill:color, opacity:"0.92", filter:"url(#"+glow+")"}));
+      svg.appendChild(text(x+barW/2, y-8, d.count, "bar-value", "middle"));
+      var lbl = d.weekStart.slice(5);
+      svg.appendChild(text(x+barW/2, baseY+18, lbl, "bar-label", "middle"));
+    });
+
+    mount.appendChild(svg);
+  }
+
+  /* ================= per-stage chart builders (lazy — panels must be visible to measure) ================= */
+  var KEY_LABELS = {flush:"Gas flush", gas:"Gas / O2", tool:"Bottom tool", purge:"Purge cycle", seal:"Seal / sealing",
+    recipe:"Recipe mismatch", settings:"Settings", dirty:"Dirty tooling", pancake:"Pancake carryover",
+    sensor:"Sensor", calibrat:"Calibration", gasket:"Gasket", oring:"O-ring"};
+
+  var renderers = {
+    overview: function(){
+      heroChart("chart-hero", DATA.weekly);
+      sparkline("chart-daily", DATA.daily, {valueKey:"count", color:"cyan", step:19, height:100});
+      barChart("chart-status", DATA.byStatus.map(function(d){
+        return {label: d.status.replace("Resolution details not provided","No detail").replace("In progress / awaiting parts","In progress"), count:d.count};
+      }), {labelKey:"label", valueKey:"count", color:"phosphor", height:200, gap:22});
+      splitMeter("meter-escalated", [
+        {label:"Not escalated", value:180, color:"cyan"},
+        {label:"Escalated", value:28, color:"magenta"}
+      ]);
+      splitMeter("meter-oxygen", [
+        {label:"High O2", value:69, color:"amber"},
+        {label:"Low O2", value:56, color:"cyan"}
+      ]);
+    },
+    time: function(){
+      splitMeter("meter-shift", [
+        {label:"Days", value:133, color:"cyan"},
+        {label:"Nights", value:75, color:"violet"}
+      ], {height:34});
+      splitMeter("meter-half", [
+        {label:"Front (Sun–Wed)", value:116, color:"amber"},
+        {label:"Back (Thu–Sat)", value:92, color:"magenta"}
+      ], {height:34});
+      barChart("chart-weekday", DATA.byWeekday.map(function(d){ return {label:d.day.slice(0,3).toUpperCase(), count:d.count}; }),
+        {labelKey:"label", valueKey:"count", color:"amber", height:220, gap:18});
+      barChart("chart-hour", DATA.byHour.map(function(d){ return {label:String(d.hour).padStart(2,"0"), count:d.count}; }),
+        {labelKey:"label", valueKey:"count", color:"cyan", height:220, barW:30, gap:10, fixedWidth:true});
+    },
+    people: function(){
+      hBarChart("chart-reporters", DATA.byReporter, {labelKey:"name", valueKey:"count", color:"magenta", labelWidth:150});
+      hBarChart("chart-resolvers", DATA.byResolver.slice(0,10), {labelKey:"name", valueKey:"count", color:"phosphor", labelWidth:150,
+        formatter:function(d){ return d.count + " · avg " + (d.avgDowntimeMin!=null && d.avgDowntimeMin>0 ? d.avgDowntimeMin+"m" : "—"); }});
+    },
+    lines: function(){
+      barChart("chart-lines", DATA.byLine.map(function(d){ return {label:d.line.replace("Line ","L"), count:d.count}; }),
+        {labelKey:"label", valueKey:"count", color:"phosphor", height:230, gap:14, padBottom:44});
+      barChart("chart-downtime", DATA.downtimeBuckets.map(function(d){ return {label:d.bucket, count:d.count}; }),
+        {labelKey:"label", valueKey:"count", color:"amber", height:230, gap:16});
+      splitMeter("meter-rootcause", [
+        {label:"Root cause logged", value:76, color:"phosphor"},
+        {label:"Blank", value:132, color:"magenta"}
+      ], {height:34});
+      hBarChart("chart-keywords", DATA.keywords.map(function(d){ return {label:KEY_LABELS[d.keyword]||d.keyword, count:d.count}; }),
+        {labelKey:"label", valueKey:"count", color:"cyan", labelWidth:150, rowH:20, gap:8});
+    }
+  };
+  var rendered = {};
+
+  /* ================= nav / view switching ================= */
+  function showView(name){
+    document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("active"); });
+    var target = document.getElementById("view-"+name);
+    if (target) target.classList.add("active");
+    document.querySelectorAll(".nav button").forEach(function(b){
+      b.classList.toggle("active", b.getAttribute("data-view") === name);
+    });
+    if (!rendered[name] && renderers[name]){
+      renderers[name]();
+      rendered[name] = true;
+    }
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+  document.querySelectorAll("[data-view]").forEach(function(elm){
+    elm.addEventListener("click", function(){ showView(elm.getAttribute("data-view")); });
+    elm.addEventListener("keydown", function(e){
+      if (e.key === "Enter" || e.key === " "){ e.preventDefault(); showView(elm.getAttribute("data-view")); }
+    });
+  });
+})();
+</script>
