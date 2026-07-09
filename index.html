@@ -197,6 +197,30 @@
   .hbar-value{font-family:var(--font-disp); font-size:11.5px; fill:var(--hi); font-variant-numeric:tabular-nums;}
   .meter-label{font-family:var(--font-disp); font-size:11px; fill:var(--mid); text-transform:uppercase;}
 
+  /* ---------- profile table ---------- */
+  .table-wrap{overflow-x:auto;}
+  table.profile-table{
+    width:100%; min-width:720px; border-collapse:collapse; font-size:13px;
+  }
+  table.profile-table th, table.profile-table td{
+    padding:9px 12px; text-align:left; border-bottom:1px solid var(--edge-dim);
+    white-space:nowrap;
+  }
+  table.profile-table th{
+    font-family:var(--font-disp); font-size:10.5px; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--dim); border-bottom:1px solid var(--edge);
+  }
+  table.profile-table td.name{color:var(--hi); font-weight:600;}
+  table.profile-table td.num{font-family:var(--font-disp); font-variant-numeric:tabular-nums; color:var(--mid);}
+  table.profile-table td.tag-cell span{
+    display:inline-block; font-family:var(--font-disp); font-size:11px; padding:2px 8px;
+    border-radius:10px; letter-spacing:0.03em;
+  }
+  .tag-low{background:rgba(77,255,159,0.14); color:var(--phosphor);}
+  .tag-mid{background:rgba(255,180,0,0.16); color:var(--amber);}
+  .tag-high{background:rgba(255,47,158,0.16); color:var(--magenta);}
+  table.profile-table td.role{color:var(--mid); font-size:12.5px; white-space:normal; min-width:190px;}
+
   /* ---------- callouts ---------- */
   .callouts{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; margin:18px 0 8px;}
   .callout{
@@ -398,6 +422,44 @@
       <div class="callout" style="--accent:var(--phosphor)"><span class="badge">⚑ Fastest clears</span><p><b>Gregory Turner</b> (11 fixes, avg <b>20.4 min</b>) and <b>John Doyle</b> (11 fixes, avg <b>23 min</b>) post the quickest average clear times among high-volume resolvers.</p></div>
       <div class="callout" style="--accent:var(--amber)"><span class="badge">⚑ Data quality flag</span><p>One logged fix (Wilberth Carrizal, Line 1, Jun 6) carries <b>273 min</b> of downtime while its own call-out text says "15 min downtime" — worth an audit pass on that entry.</p></div>
     </div>
+
+    <div class="stage-head" style="margin-top:8px;">
+      <p class="eyebrow">Why they call</p>
+      <h2>What's actually behind the top-caller ranking</h2>
+      <p>Reading the top 8 reporters' own call text, shift, and escalation history — volume alone doesn't say much on its own.</p>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="p-head"><h4>Caller profiles</h4><span class="tag">top 8 · shift, escalation rate, biggest single day</span></div>
+      <div class="table-wrap">
+        <table class="profile-table">
+          <thead><tr>
+            <th>Caller</th><th>Calls</th><th>Shift</th><th>Escalated</th><th>Busiest single day</th><th>Lines touched</th><th>Read on their calls</th>
+          </tr></thead>
+          <tbody>
+            <tr><td class="name">Jared Cooper</td><td class="num">35</td><td class="num">80% Days</td><td class="tag-cell"><span class="tag-low">0%</span></td><td class="num">Jul 4 · 9 calls (26%)</td><td class="num">10</td><td class="role">Broad O2 sweep across the floor — reads high &amp; low almost evenly, rarely stays to log a fix</td></tr>
+            <tr><td class="name">Andres Valverde</td><td class="num">18</td><td class="num">61% Days</td><td class="tag-cell"><span class="tag-low">0%</span></td><td class="num">May 12 · 6 calls (33%)</td><td class="num">10</td><td class="role">Tracks repeat failures on the same line within a shift ("2nd fail", "3rd time")</td></tr>
+            <tr><td class="name">Elizabeth Cericola</td><td class="num">17</td><td class="num">76% Nights</td><td class="tag-cell"><span class="tag-low">0%</span></td><td class="num">May 18 · 3 calls (18%)</td><td class="num">7</td><td class="role">Steadiest profile of the top 3 — no single day dominates; the default night-shift O2 voice</td></tr>
+            <tr><td class="name">Jonathan Bonilla</td><td class="num">13</td><td class="num">85% Days</td><td class="tag-cell"><span class="tag-mid">23%</span></td><td class="num">Jul 7 · 3 calls (23%)</td><td class="num">5</td><td class="role">Narrower line focus (Line 8 heaviest) — "keeps failing", "failed 3 times"</td></tr>
+            <tr><td class="name">Shaunessey West</td><td class="num">12</td><td class="num">67% Days</td><td class="tag-cell"><span class="tag-mid">33%</span></td><td class="num">May 17 · 3 calls (25%)</td><td class="num">6</td><td class="role">Mixed sealing + oxygen calls, often multi-line at once ("SOS issues")</td></tr>
+            <tr><td class="name">Jeremy Nelson</td><td class="num">10</td><td class="num">60% Days</td><td class="tag-cell"><span class="tag-mid">20%</span></td><td class="num">May 16 · 2 calls (20%)</td><td class="num">5</td><td class="role">Similar sweep style to Jared, smaller scale, Saturday-leaning</td></tr>
+            <tr><td class="name">Sheanna Donnelli</td><td class="num">9</td><td class="num">89% Days</td><td class="tag-cell"><span class="tag-high">78%</span></td><td class="num">Jun 16 · 3 calls (33%)</td><td class="num">4</td><td class="role">Calls rarely, but almost every call is a severe multi-fail — "failed 18+ times"</td></tr>
+            <tr><td class="name">Jesus Martinez</td><td class="num">9</td><td class="num">89% Days</td><td class="tag-cell"><span class="tag-high">56%</span></td><td class="num">Jun 15 · 2 calls (22%)</td><td class="num">7</td><td class="role">Low volume, high seriousness — mix of oxygen and mechanical (belt/sensor) calls</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="p-head"><h4>Escalation rate by caller</h4><span class="tag">share of their own calls that got escalated</span></div>
+      <div id="chart-escalation"></div>
+    </div>
+
+    <div class="callouts">
+      <div class="callout" style="--accent:var(--cyan)"><span class="badge">⚑ It's shift coverage, not skill</span><p>The top 3 callers split cleanly by shift — <b>Jared Cooper</b> and <b>Andres Valverde</b> are Days (80%, 61%), <b>Elizabeth Cericola</b> is Nights (76%). Between the three of them, someone's on the floor logging O2 reads around the clock — that alone explains most of the volume gap over everyone else.</p></div>
+      <div class="callout" style="--accent:var(--amber)"><span class="badge">⚑ Rank is partly one bad day</span><p><b>26%</b> of Jared Cooper's total (9 of 35) landed on a single day, <b>Jul 4</b>. <b>33%</b> of Andres Valverde's (6 of 18) landed on <b>May 12</b>. Elizabeth Cericola's busiest day is only <b>18%</b> of hers — her ranking is the more structural one; theirs is boosted by one rough shift each.</p></div>
+      <div class="callout" style="--accent:var(--magenta)"><span class="badge">⚑ Volume and severity run opposite ways</span><p>The 3 highest-volume callers escalated <b>0%</b> of their calls. The 2 lowest-volume callers in the top 8 — <b>Sheanna Donnelli</b> and <b>Jesus Martinez</b> — escalated <b>78%</b> and <b>56%</b>. The busiest reporters are doing routine oxygen checks; the quiet ones are the ones flagging real breakdowns.</p></div>
+    </div>
   </section>
 
   <!-- ============ STAGE 4 : BOSS ROOM ============ -->
@@ -507,15 +569,16 @@
     var labelW = opts.labelWidth || 140;
     var width = Math.max(mount.clientWidth || 0, opts.minWidth || 320);
     var plotW = width - labelW - 70;
-    var max = Math.max.apply(null, data.map(function(d){return d[valueKey];})) * 1.1;
+    var maxVal = opts.maxVal || Math.max.apply(null, data.map(function(d){return d[valueKey];})) * 1.1;
     var h = data.length*(rowH+gap)+gap;
     var svg = el("svg", {viewBox:"0 0 " + width + " " + h, width:"100%", height:h, class:"chart-svg"});
     data.forEach(function(d,i){
       var y = gap + i*(rowH+gap);
       var val = d[valueKey];
-      var bw = Math.max(plotW*(val/max), 2);
+      var bw = Math.max(plotW*(val/maxVal), 2);
+      var rowColorKey = opts.colorFn ? opts.colorFn(d) : opts.color;
       svg.appendChild(text(labelW-10, y+rowH*0.72, d[labelKey], "hbar-label", "end"));
-      svg.appendChild(el("rect", {x:labelW,y:y,width:bw,height:rowH,rx:3,fill:color,filter:"url(#"+glow+")"}));
+      svg.appendChild(el("rect", {x:labelW,y:y,width:bw,height:rowH,rx:3,fill:COLORS[rowColorKey],filter:"url(#"+GLOW[rowColorKey]+")"}));
       var trail = opts.formatter ? opts.formatter(d) : String(val);
       svg.appendChild(text(labelW+bw+8, y+rowH*0.72, trail, "hbar-value"));
     });
@@ -655,6 +718,14 @@
       hBarChart("chart-reporters", DATA.byReporter, {labelKey:"name", valueKey:"count", color:"magenta", labelWidth:150});
       hBarChart("chart-resolvers", DATA.byResolver.slice(0,10), {labelKey:"name", valueKey:"count", color:"phosphor", labelWidth:150,
         formatter:function(d){ return d.count + " · avg " + (d.avgDowntimeMin!=null && d.avgDowntimeMin>0 ? d.avgDowntimeMin+"m" : "—"); }});
+      var CALLER_ESC = [
+        {name:"Jared Cooper", esc:0}, {name:"Andres Valverde", esc:0}, {name:"Elizabeth Cericola", esc:0},
+        {name:"Jonathan Bonilla", esc:23}, {name:"Shaunessey West", esc:33}, {name:"Jeremy Nelson", esc:20},
+        {name:"Sheanna Donnelli", esc:78}, {name:"Jesus Martinez", esc:56}
+      ];
+      hBarChart("chart-escalation", CALLER_ESC, {labelKey:"name", valueKey:"esc", labelWidth:150, maxVal:100,
+        colorFn:function(d){ return d.esc >= 50 ? "magenta" : (d.esc >= 20 ? "amber" : "phosphor"); },
+        formatter:function(d){ return d.esc + "%"; }});
     },
     lines: function(){
       barChart("chart-lines", DATA.byLine.map(function(d){ return {label:d.line.replace("Line ","L"), count:d.count}; }),
